@@ -5,7 +5,7 @@ import AuthCard from './ui/AuthCard';
 import EmailInput from './ui/EmailInput';
 import PasswordInput from './ui/PasswordInput';
 
-const ProviderLogin = () => {
+const ProviderLogin = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -33,14 +33,11 @@ const ProviderLogin = () => {
     setError('');
 
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise(resolve => setTimeout(resolve, 800));
       if (!formData.email || !formData.password) {
         throw new Error('Please fill in all fields');
       }
-
-      console.log('Provider login successful:', formData);
-      
+      onSuccess?.();
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

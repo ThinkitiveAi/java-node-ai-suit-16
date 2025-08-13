@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Calendar, Clock, Settings, Users, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Calendar, Clock, Plus } from 'lucide-react';
 import AvailabilityCalendar from './AvailabilityCalendar';
 import SlotFormModal from './SlotFormModal';
 import SmokyCursor from '../SmookyCursor';
+import { useToast } from '../../context/ToastContext';
+import { setAvailability } from '../../utils/mockApi';
 
 const ProviderDashboard = () => {
   const [view, setView] = useState('week');
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [slots, setSlots] = useState([]);
-  const [smokyHover, setSmokyHover] = useState(false);
+  const [pendingCells, setPendingCells] = useState([]);
+  const { enqueueToast } = useToast();
 
-  // Mock data for demonstration
   useEffect(() => {
     const mockSlots = [
       {
@@ -26,17 +28,6 @@ const ProviderDashboard = () => {
         isRecurring: true,
         recurrence: 'weekly'
       },
-      {
-        id: 2,
-        date: '2024-01-15',
-        startTime: '14:00',
-        endTime: '15:00',
-        type: 'follow-up',
-        maxPatients: 1,
-        currentPatients: 0,
-        isRecurring: false,
-        recurrence: null
-      }
     ];
     setSlots(mockSlots);
   }, []);
@@ -48,32 +39,31 @@ const ProviderDashboard = () => {
 
   const handleSlotSave = (slotData) => {
     if (selectedSlot) {
-      setSlots(prev => prev.map(slot => 
-        slot.id === selectedSlot.id ? { ...slot, ...slotData } : slot
-      ));
+      setSlots(prev => prev.map(slot => slot.id === selectedSlot.id ? { ...slot, ...slotData } : slot));
     } else {
       setSlots(prev => [...prev, { ...slotData, id: Date.now() }]);
     }
     setIsModalOpen(false);
     setSelectedSlot(null);
+    enqueueToast({ variant: 'success', title: 'Saved', message: 'Time slot has been saved.' });
   };
 
   const handleSlotDelete = (slotId) => {
     setSlots(prev => prev.filter(slot => slot.id !== slotId));
     setIsModalOpen(false);
     setSelectedSlot(null);
+    enqueueToast({ variant: 'success', title: 'Deleted', message: 'Time slot has been deleted.' });
   };
 
-  const handleNewSlot = () => {
-    setSelectedSlot(null);
-    setIsModalOpen(true);
+  const handleSaveCells = async () => {
+    await setAvailability('p1', pendingCells);
+    enqueueToast({ variant: 'success', title: 'Availability saved', message: `${pendingCells.length} cells saved.` });
+    setPendingCells([]);
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-healthcare-50 via-primary-50 to-healthcare-100 relative">
       <SmokyCursor />
-      
-      {/* Header */}
       <motion.div 
         className="bg-white/80 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-10"
         initial={{ opacity: 0, y: -20 }}
@@ -91,15 +81,21 @@ const ProviderDashboard = () => {
                 <p className="text-sm text-gray-600">Manage your schedule and patient bookings</p>
               </div>
             </div>
-            
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center gap-2">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                disabled={pendingCells.length === 0}
+                onClick={handleSaveCells}
+                className="rounded bg-primary-600 px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                Save Changes
+              </motion.button>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 className="flex items-center space-x-2 px-4 py-2 bg-gradient-to-r from-primary-500 to-healthcare-500 text-white rounded-lg hover:from-primary-600 hover:to-healthcare-600 transition-all duration-200 shadow-lg hover:shadow-xl"
-                onClick={handleNewSlot}
-                onMouseEnter={() => setSmokyHover(true)}
-                onMouseLeave={() => setSmokyHover(false)}
+                onClick={() => { setSelectedSlot(null); setIsModalOpen(true); }}
               >
                 <Plus className="w-4 h-4" />
                 <span>New Slot</span>
@@ -109,91 +105,29 @@ const ProviderDashboard = () => {
         </div>
       </motion.div>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <motion.div 
-            className="lg:col-span-1"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
-          >
-            <div className="bg-white/80 backdrop-blur-sm rounded-xl shadow-lg border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Stats</h3>
-              
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-primary-50 to-healthcare-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Clock className="w-5 h-5 text-primary-600" />
-                    <span className="text-sm font-medium text-gray-700">Total Slots</span>
-                  </div>
-                  <span className="text-lg font-bold text-primary-600">{slots.length}</span>
-                </div>
-                
-                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-healthcare-50 to-primary-50 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <Users className="w-5 h-5 text-healthcare-600" />
-                    <span className="text-sm font-medium text-gray-700">Booked Patients</span>
-                  </div>
-                  <span className="text-lg font-bold text-healthcare-600">
-                    {slots.reduce((acc, slot) => acc + slot.currentPatients, 0)}
-                  </span>
-                </div>
-              </div>
-
-              {/* View Toggle */}
-              <div className="mt-6">
-                <h4 className="text-sm font-medium text-gray-700 mb-3">Calendar View</h4>
-                <div className="flex space-x-2">
-                  {['week', 'month'].map((viewOption) => (
-                    <motion.button
-                      key={viewOption}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`px-3 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                        view === viewOption
-                          ? 'bg-primary-500 text-white shadow-lg'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      onClick={() => setView(viewOption)}
-                    >
-                      {viewOption.charAt(0).toUpperCase() + viewOption.slice(1)}
-                    </motion.button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Calendar */}
-          <motion.div 
-            className="lg:col-span-3"
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
-          >
-            <AvailabilityCalendar
-              view={view}
-              slots={slots}
-              onSlotClick={handleSlotClick}
-              smokyHover={smokyHover}
-            />
-          </motion.div>
-        </div>
+        <motion.div 
+          className="lg:col-span-3"
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <AvailabilityCalendar
+            view={view}
+            slots={slots}
+            onSlotClick={handleSlotClick}
+            onChange={setPendingCells}
+          />
+        </motion.div>
       </div>
 
-      {/* Modal */}
       <AnimatePresence>
         {isModalOpen && (
           <SlotFormModal
             initialValues={selectedSlot}
             onSave={handleSlotSave}
             onDelete={handleSlotDelete}
-            onClose={() => {
-              setIsModalOpen(false);
-              setSelectedSlot(null);
-            }}
+            onClose={() => { setIsModalOpen(false); setSelectedSlot(null); }}
           />
         )}
       </AnimatePresence>

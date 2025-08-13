@@ -5,7 +5,7 @@ import AuthCard from './ui/AuthCard';
 import EmailInput from './ui/EmailInput';
 import PasswordInput from './ui/PasswordInput';
 
-const PatientLogin = ({ onShowRegistration, onForgotPassword, onNeedHelp }) => {
+const PatientLogin = ({ onShowRegistration, onForgotPassword, onNeedHelp, onSuccess }) => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -34,19 +34,13 @@ const PatientLogin = ({ onShowRegistration, onForgotPassword, onNeedHelp }) => {
 
     // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise(resolve => setTimeout(resolve, 800));
       // Mock validation
       if (!formData.email || !formData.password) {
         throw new Error('Please fill in all fields');
       }
-
       // Mock successful login
-      console.log('Patient login successful:', formData);
-      
-      // Here you would typically redirect to the patient dashboard
-      // or handle the successful login response
-      
+      onSuccess?.();
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
